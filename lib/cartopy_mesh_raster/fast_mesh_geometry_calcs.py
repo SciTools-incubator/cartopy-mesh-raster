@@ -1,3 +1,11 @@
+"""
+Numba-enabled calculations to search a structured 2D mesh for faces containing
+random target points.
+
+The code assumes that the mesh nodes nearest to the target points are available
+as an extra input, as this makes the whole process more tractable.
+
+"""
 import numba
 import numpy as np
 
@@ -78,7 +86,9 @@ def face_edge_normals(faces_points):
 
 
 @numba.njit()
-def search_faces_for_point(target_point_xyz, i_point_nearest,
+def search_faces_for_point(target_point_xyz,
+                           i_point_nearest=-1,
+                           face_indices_to_search=None,
                            mesh_points_xyz_array=None,
                            mesh_face_points_array=None,
                            mesh_point_faces_array=None):
@@ -90,16 +100,26 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
     * target_point_xyz (array[3]):
         xyz point target of face-search.
 
-    * i_point_nearest (int):
-        index of nearest mesh point.
-        If given, the faces searched are the ones connected to this point.
-        Ignored if face_indices_to_search is set.
-
     Kwargs:
 
-    * mesh_points_xyz_array (array [N_NODES, 3] of float):
-    * mesh_face_points_array (array {N=None,
-    * mesh_point_faces_array=None):
+    * i_point_nearest (int):
+        node index of the nearest mesh point.
+        Only the faces connected to this node are searched.
+        Ignored if face_indices_to_search is set.
+
+    * face_indices_to_search (iterable of int):
+        face indices of faces to search.
+        Not required if i_point_nearest is a valid point index.
+
+    * mesh_points_xyz_array (array[N_NODES, 3] of float):
+        the 3d XYZ coordinates of the mesh nodes on the unit sphere.
+
+    * mesh_face_points_array (array[N_FACES, 4] of int):
+        the node indices of the (4) corners comprising each face.
+
+    * mesh_point_faces_array (array[N_NODES, 4] of int):
+        indices of the faces of which each point is a corner.
+        Where a point touches < 4 faces, the unused face indices should be -1.
 
     Returns:
         n_found, face_index (int, int):
@@ -108,9 +128,14 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
                 i.e. n > 1 :  This may occur when close to an edge.
             (0, -1) if not in any of them.
 
+    .. note::
+        the last 3 kwargs are in fact required, and *not* optional.
+        This is just for a nicer arg ordering.
+
     """
     # Get indices of required faces: [n_faces]
-    face_indices_to_search = mesh_point_faces_array[i_point_nearest]
+    if face_indices_to_search is None:
+        face_indices_to_search = mesh_point_faces_array[i_point_nearest]
 
     # Extract face-points-indices [n_faces, N_MESH_PTS_PER_FACE]
 #    faces_points_indices = mesh_face_points_array[
@@ -163,6 +188,33 @@ def search_faces_for_points(target_points_xyz,
                             nodes_xyz,
                             face_nodes_array,
                             node_faces_array):
+    """
+    Find the faces that contain target points.
+
+    Args:
+
+    * target_points_xyz (array[N_TARGET, 3] of float):
+        the xyz target points (on the unit sphere).
+
+    * i_points_nearest (array(N_TARGET) of int):
+        node indexes of nearest mesh point, for each target point.
+        For each target, only the faces connected to this node are searched.
+
+    * mesh_points_xyz_array (array[N_NODES, 3] of float):
+        the 3d XYZ coordinates of the mesh nodes on the unit sphere.
+
+    * mesh_face_points_array (array[N_FACES, 4] of int):
+        the node indices of the (4) corners of each face.
+
+    * mesh_point_faces_array (array[N_NODES, 4] of int):
+        indices of the faces of which each point is a corner.
+        Where a point touches < 4 faces, the unused face indices should be -1.
+
+    Returns:
+        n_found (array[N_TARGET] of int):
+            face indices of the faces containing each target point.
+
+    """
     n_points = target_points_xyz.shape[0]
     result = np.zeros((n_points,), dtype=np.int32)
     for i_point in numba.prange(n_points):
