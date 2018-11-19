@@ -30,7 +30,8 @@ class MeshRasterize(RasterSource):
         end = time.time()
         logging.info('KD Construction time ({} points): {}'.format(lons.size, end - start))
         self._face_nodes = np.array(face_nodes)
-        self._node_faces = fmgc.create_node_faces_array(face_nodes, num_nodes=len(lons))
+        self._node_faces = fmgc.create_node_faces_array(self._face_nodes,
+                                                        num_nodes=len(lons))
 
     def validate_projection(self, projection):
         return True
