@@ -14,7 +14,7 @@ def create_node_faces_array(face_nodes, num_nodes):
     * For points touching > 4 faces, we will get an error.
 
     """
-    vertex_faces = np.zeros((num_nodes, 4), dtype=np.uint32) - 1
+    vertex_faces = np.zeros((num_nodes, 4), dtype=np.int32) - 1
     big = vertex_faces[0, 0]
     for f_index in range(face_nodes.shape[0]):
         face = face_nodes[f_index]

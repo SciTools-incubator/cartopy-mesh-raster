@@ -49,6 +49,10 @@ class MeshRasterize(RasterSource):
         logging.info('Query of {} points: {}'.format(np.prod(target_resolution),
                                               end - start))
 
+        # Clip to valid node indices: can get =N-points for NaN or inf. points.
+        n_points = self._node_faces.shape[0]
+        node_indices[(node_indices < 0) | (node_indices >= n_points)] = 0
+
         start = time.time()       
         face_indices = fmgc.search_faces_for_points(
             target_points_xyz=xyz_sample,
