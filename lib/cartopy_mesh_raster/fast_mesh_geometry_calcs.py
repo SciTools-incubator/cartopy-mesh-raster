@@ -103,23 +103,27 @@ def search_faces_for_point(target_point_xyz,
     Kwargs:
 
     * i_point_nearest (int):
-        node index of the nearest mesh point.
+        The node index of the nearest mesh point.
         Only the faces connected to this node are searched.
         Ignored if face_indices_to_search is set.
 
-    * face_indices_to_search (iterable of int):
-        face indices of faces to search.
+    * face_indices_to_search ((iterable of int) or None):
+        The face indices of faces to search.
         Not required if i_point_nearest is a valid point index.
 
     * mesh_points_xyz_array (array[N_NODES, 3] of float):
-        the 3d XYZ coordinates of the mesh nodes on the unit sphere.
+        The 3d XYZ coordinates of the mesh nodes on the unit sphere.
+        Note: this kwarg is a *required* input.
 
     * mesh_face_points_array (array[N_FACES, 4] of int):
-        the node indices of the (4) corners comprising each face.
+        The node indices of the (4) corners comprising each face.
+        Note: this kwarg is a *required* input.
 
     * mesh_point_faces_array (array[N_NODES, 4] of int):
-        indices of the faces of which each point is a corner.
+        The indices of the faces of which each point is a corner.
         Where a point touches < 4 faces, the unused face indices should be -1.
+        Note: this kwarg is a *required* input, unless 'face_indices_to_search'
+        is provided in place of 'i_point_nearest'.
 
     Returns:
         n_found, face_index (int, int):
@@ -127,14 +131,29 @@ def search_faces_for_point(target_point_xyz,
             (n, first-found-face-index) if in more than one of them
                 i.e. n > 1 :  This may occur when close to an edge.
             (0, -1) if not in any of them.
+            (errno, -1) : an error which occurred.
 
     .. note::
-        the last 3 kwargs are in fact required, and *not* optional.
+        The last 3 kwargs are in fact required, and *not* optional.
         This is just for a nicer arg ordering.
+        Except: 'mesh_point_faces_array' can be omitted if
+        'face_indices_to_search' is given in place of 'i_point_nearest'.
 
     """
+#    required_arg_msg = ('Call has no "{}" arg or kwarg, '
+#                        'which is a required input in this case.')
+    if mesh_points_xyz_array is None:
+#        raise ValueError(required_arg_msg.format('mesh_points_xyz_array'))
+        return (101, -1)
+    elif mesh_face_points_array is None:
+#        raise ValueError(required_arg_msg.format('mesh_face_points_array'))
+        return (102, -1)
+
     # Get indices of required faces: [n_faces]
     if face_indices_to_search is None:
+        if mesh_point_faces_array is None:
+#            raise ValueError(required_arg_msg.format('mesh_point_faces_array'))
+            return (103, -1)
         face_indices_to_search = mesh_point_faces_array[i_point_nearest]
 
     # Extract face-points-indices [n_faces, N_MESH_PTS_PER_FACE]
