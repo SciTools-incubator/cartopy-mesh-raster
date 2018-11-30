@@ -30,10 +30,12 @@ test_points = [
     ([27., 53], 4),
     ([24., 57], 4),
     ([27., 57], 4),
+    ([25., 55], 4),
     ([23., 53], 3),
     ([27., 53], 3),
     ([24., 57], 3),
     ([27., 57], 3),
+    ([25., 55], 3),
 ]
 
 # Mesh point (aka NODE) locations.
@@ -73,6 +75,7 @@ def _latlons_to_xyzs(lats, lons, in_degrees=False):
     x = cos_lat * np.cos(lons)
     y = cos_lat * np.sin(lons)
     return np.stack((x, y, z), axis=-1)
+
 
 def test():
     #
@@ -128,7 +131,7 @@ def test():
     #
     # TEST : check that last result is as expected.
     #
-    assert np.all(faces_found == [0, 1, 3, 2, -1, 1, -1, 2])
+    assert np.all(faces_found == [0, 1, 3, 2, 2, -1, 1, -1, 2, 2])
 
     #
     # Also do a simple speed test ..
