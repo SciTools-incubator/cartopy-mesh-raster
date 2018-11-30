@@ -157,9 +157,6 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
     return (n_found, face_index)
 
 
-    return point_in_faces
-
-
 @numba.njit()
 def search_faces_for_points(target_points_xyz,
                             i_points_nearest,
@@ -179,4 +176,3 @@ def search_faces_for_points(target_points_xyz,
             mesh_face_points_array=face_nodes_array)
         result[i_point] = face_index
     return result
-
