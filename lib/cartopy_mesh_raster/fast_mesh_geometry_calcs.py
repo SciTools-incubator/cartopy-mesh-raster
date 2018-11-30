@@ -139,7 +139,7 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
         edge_normals,
         target_point_xyz.reshape((1, 1, 3)))
     # Get faces where 'inside' all 4 edges [n_faces].
-    point_inside_edges = point_edge_distances < 0.0
+    point_inside_edges = point_edge_distances <= 0.0
 #    point_in_faces = np.prod(point_inside_edges, axis=-1)
     point_in_faces = point_inside_edges[..., 0]
     n_edges = point_inside_edges.shape[-1]
