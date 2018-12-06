@@ -26,6 +26,7 @@ class TestMeshRasterize(IrisTest):
                                      test_filename])
 
         with nc.Dataset(test_filepath, 'r') as ds:
+            # Identify node lats + lons variables, and fetch those values.
             latlon_coords_varnames = ('Mesh2_node_y', 'Mesh2_node_x')
             var_node_lats, var_node_lons = (
                 ds.variables[varname]
@@ -34,15 +35,20 @@ class TestMeshRasterize(IrisTest):
                 var[:]
                 for var in (var_node_lats, var_node_lons))
 
+            # Convert lats+lons values to degrees if needed.
             units = var_node_lons.units
             if 'degree' not in units:
                 node_lats, node_lons = (np.rad2deg(arr)
                                         for arr in (node_lats, node_lons))
 
-            face_nodes_indices = ds.variables['Mesh2_face_nodes'][:] - 1
+            # Get nodes making corners of each face.
+            face_nodes_indices = ds.variables['Mesh2_face_nodes'][:]
+            # Convert these from from 1-based to 0-based node indices.
+            face_nodes_indices -= 1
+
+            # Get a test value mapped onto each face (like a face "colour").
             face_values = ds.variables['face_values'][:]
 
-        self._face_values_min_max = (np.min(face_values), np.max(face_values))
         # Create a test object.
         self._raster = MeshRasterize(lons=node_lons, lats=node_lats,
                                      face_nodes=face_nodes_indices,
