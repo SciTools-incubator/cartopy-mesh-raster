@@ -120,8 +120,8 @@ def test():
     nearest_indices_array = np.array(test_nearest_points, np.int)
     faces_found = fmgc.search_faces_for_points(
         target_points_xyz=all_testpoints_xyz,
-        i_points_nearest=nearest_indices_array,
-        nodes_xyz=nodes_xyz,
+        i_nodes_nearest=nearest_indices_array,
+        nodes_xyz_array=nodes_xyz,
         face_nodes_array=face_nodes,
         node_faces_array=node_faces)
 
@@ -143,8 +143,8 @@ def test():
     for n in range(n_calls):
         faces_found = fmgc.search_faces_for_points(
             target_points_xyz=all_testpoints_xyz,
-            i_points_nearest=nearest_indices_array,
-            nodes_xyz=nodes_xyz,
+            i_nodes_nearest=nearest_indices_array,
+            nodes_xyz_array=nodes_xyz,
             face_nodes_array=face_nodes,
             node_faces_array=node_faces)
     t1 = datetime.now()

@@ -203,8 +203,8 @@ def search_faces_for_point(target_point_xyz,
 
 @numba.njit()
 def search_faces_for_points(target_points_xyz,
-                            i_points_nearest,
-                            nodes_xyz,
+                            i_nodes_nearest,
+                            nodes_xyz_array,
                             face_nodes_array,
                             node_faces_array):
     """
@@ -213,36 +213,38 @@ def search_faces_for_points(target_points_xyz,
     Args:
 
     * target_points_xyz (array[N_TARGET, 3] of float):
-        the xyz target points (on the unit sphere).
+        The xyz coordinates of the target points, on the unit sphere.
 
-    * i_points_nearest (array(N_TARGET) of int):
-        node indexes of nearest mesh point, for each target point.
+    * i_nodes_nearest (array(N_TARGET) of int):
+        The node index (0-based) of the nearest mesh point, for each target
+        point.
         For each target, only the faces connected to this node are searched.
 
-    * mesh_points_xyz_array (array[N_NODES, 3] of float):
-        the 3d XYZ coordinates of the mesh nodes on the unit sphere.
+    * nodes_xyz_array (array[N_NODES, 3] of float):
+        The xyz coordinates of the mesh nodes, on the unit sphere.
 
-    * mesh_face_points_array (array[N_FACES, 4] of int):
-        the node indices of the (4) corners of each face.
+    * face_nodes_array (array[N_FACES, 4] of int):
+        The node indices (0-based) of the (4) corners of each face.
 
-    * mesh_point_faces_array (array[N_NODES, 4] of int):
-        indices of the faces of which each point is a corner.
+    * node_faces_array (array[N_NODES, 4] of int):
+        The indices (0-based) of the faces of which each point is a vertex.
         Where a point touches < 4 faces, the unused face indices should be -1.
 
     Returns:
-        n_found (array[N_TARGET] of int):
-            face indices of the faces containing each target point.
+        i_faces_found (array[N_TARGET] of int):
+            The face indices (0-based) of a face containing each target point.
+            Set to -1 for points where no containing face was found.
 
     """
     n_points = target_points_xyz.shape[0]
     result = np.zeros((n_points,), dtype=np.int32)
     for i_point in numba.prange(n_points):
         target_point_xyz = target_points_xyz[i_point]
-        i_point_nearest = i_points_nearest[i_point]
+        i_point_nearest = i_nodes_nearest[i_point]
         n_found, face_index = search_faces_for_point(
             target_point_xyz=target_point_xyz,
             i_point_nearest=i_point_nearest,
-            mesh_points_xyz_array=nodes_xyz,
+            mesh_points_xyz_array=nodes_xyz_array,
             mesh_point_faces_array=node_faces_array,
             mesh_face_points_array=face_nodes_array)
         result[i_point] = face_index
