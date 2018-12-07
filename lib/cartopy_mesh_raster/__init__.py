@@ -57,8 +57,8 @@ class MeshRasterize(RasterSource):
         start = time.time()
         face_indices = fmgc.search_faces_for_points(
             target_points_xyz=xyz_sample,
-            i_points_nearest=node_indices,
-            nodes_xyz=self._nodes_xyz,
+            i_nodes_nearest=node_indices,
+            nodes_xyz_array=self._nodes_xyz,
             face_nodes_array=self._face_nodes,
             node_faces_array=self._node_faces
             )

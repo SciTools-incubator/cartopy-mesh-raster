@@ -1,3 +1,11 @@
+"""
+Numba-enabled calculations to search a structured 2D mesh for faces containing
+random target points.
+
+The code assumes that the mesh nodes nearest to the target points are available
+as an extra input, as this makes the whole process more tractable.
+
+"""
 import numba
 import numpy as np
 
@@ -78,7 +86,9 @@ def face_edge_normals(faces_points):
 
 
 @numba.njit()
-def search_faces_for_point(target_point_xyz, i_point_nearest,
+def search_faces_for_point(target_point_xyz,
+                           i_point_nearest=-1,
+                           face_indices_to_search=None,
                            mesh_points_xyz_array=None,
                            mesh_face_points_array=None,
                            mesh_point_faces_array=None):
@@ -90,16 +100,30 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
     * target_point_xyz (array[3]):
         xyz point target of face-search.
 
-    * i_point_nearest (int):
-        index of nearest mesh point.
-        If given, the faces searched are the ones connected to this point.
-        Ignored if face_indices_to_search is set.
-
     Kwargs:
 
-    * mesh_points_xyz_array (array [N_NODES, 3] of float):
-    * mesh_face_points_array (array {N=None,
-    * mesh_point_faces_array=None):
+    * i_point_nearest (int):
+        The node index of the nearest mesh point.
+        Only the faces connected to this node are searched.
+        Ignored if face_indices_to_search is set.
+
+    * face_indices_to_search ((iterable of int) or None):
+        The face indices of faces to search.
+        Not required if i_point_nearest is a valid point index.
+
+    * mesh_points_xyz_array (array[N_NODES, 3] of float):
+        The 3d XYZ coordinates of the mesh nodes on the unit sphere.
+        Note: this kwarg is a *required* input.
+
+    * mesh_face_points_array (array[N_FACES, 4] of int):
+        The node indices of the (4) corners comprising each face.
+        Note: this kwarg is a *required* input.
+
+    * mesh_point_faces_array (array[N_NODES, 4] of int):
+        The indices of the faces of which each point is a corner.
+        Where a point touches < 4 faces, the unused face indices should be -1.
+        Note: this kwarg is a *required* input, unless 'face_indices_to_search'
+        is provided in place of 'i_point_nearest'.
 
     Returns:
         n_found, face_index (int, int):
@@ -107,10 +131,30 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
             (n, first-found-face-index) if in more than one of them
                 i.e. n > 1 :  This may occur when close to an edge.
             (0, -1) if not in any of them.
+            (errno, -1) : an error which occurred.
+
+    .. note::
+        The last 3 kwargs are in fact required, and *not* optional.
+        This is just for a nicer arg ordering.
+        Except: 'mesh_point_faces_array' can be omitted if
+        'face_indices_to_search' is given in place of 'i_point_nearest'.
 
     """
+#    required_arg_msg = ('Call has no "{}" arg or kwarg, '
+#                        'which is a required input in this case.')
+    if mesh_points_xyz_array is None:
+#        raise ValueError(required_arg_msg.format('mesh_points_xyz_array'))
+        return (101, -1)
+    elif mesh_face_points_array is None:
+#        raise ValueError(required_arg_msg.format('mesh_face_points_array'))
+        return (102, -1)
+
     # Get indices of required faces: [n_faces]
-    face_indices_to_search = mesh_point_faces_array[i_point_nearest]
+    if face_indices_to_search is None:
+        if mesh_point_faces_array is None:
+#            raise ValueError(required_arg_msg.format('mesh_point_faces_array'))
+            return (103, -1)
+        face_indices_to_search = mesh_point_faces_array[i_point_nearest]
 
     # Extract face-points-indices [n_faces, N_MESH_PTS_PER_FACE]
 #    faces_points_indices = mesh_face_points_array[
@@ -159,19 +203,48 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
 
 @numba.njit()
 def search_faces_for_points(target_points_xyz,
-                            i_points_nearest,
-                            nodes_xyz,
+                            i_nodes_nearest,
+                            nodes_xyz_array,
                             face_nodes_array,
                             node_faces_array):
+    """
+    Find the faces that contain target points.
+
+    Args:
+
+    * target_points_xyz (array[N_TARGET, 3] of float):
+        The xyz coordinates of the target points, on the unit sphere.
+
+    * i_nodes_nearest (array(N_TARGET) of int):
+        The node index (0-based) of the nearest mesh point, for each target
+        point.
+        For each target, only the faces connected to this node are searched.
+
+    * nodes_xyz_array (array[N_NODES, 3] of float):
+        The xyz coordinates of the mesh nodes, on the unit sphere.
+
+    * face_nodes_array (array[N_FACES, 4] of int):
+        The node indices (0-based) of the (4) corners of each face.
+
+    * node_faces_array (array[N_NODES, 4] of int):
+        The indices (0-based) of the faces of which each point is a vertex.
+        Where a point touches < 4 faces, the unused face indices should be -1.
+
+    Returns:
+        i_faces_found (array[N_TARGET] of int):
+            The face indices (0-based) of a face containing each target point.
+            Set to -1 for points where no containing face was found.
+
+    """
     n_points = target_points_xyz.shape[0]
     result = np.zeros((n_points,), dtype=np.int32)
     for i_point in numba.prange(n_points):
         target_point_xyz = target_points_xyz[i_point]
-        i_point_nearest = i_points_nearest[i_point]
+        i_point_nearest = i_nodes_nearest[i_point]
         n_found, face_index = search_faces_for_point(
             target_point_xyz=target_point_xyz,
             i_point_nearest=i_point_nearest,
-            mesh_points_xyz_array=nodes_xyz,
+            mesh_points_xyz_array=nodes_xyz_array,
             mesh_point_faces_array=node_faces_array,
             mesh_face_points_array=face_nodes_array)
         result[i_point] = face_index
