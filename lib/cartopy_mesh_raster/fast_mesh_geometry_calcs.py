@@ -14,7 +14,7 @@ def create_node_faces_array(face_nodes, num_nodes):
     * For points touching > 4 faces, we will get an error.
 
     """
-    vertex_faces = np.zeros((num_nodes, 4), dtype=np.uint32) - 1
+    vertex_faces = np.zeros((num_nodes, 4), dtype=np.int32) - 1
     big = vertex_faces[0, 0]
     for f_index in range(face_nodes.shape[0]):
         face = face_nodes[f_index]
@@ -139,7 +139,7 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
         edge_normals,
         target_point_xyz.reshape((1, 1, 3)))
     # Get faces where 'inside' all 4 edges [n_faces].
-    point_inside_edges = point_edge_distances < 0.0
+    point_inside_edges = point_edge_distances <= 0.0
 #    point_in_faces = np.prod(point_inside_edges, axis=-1)
     point_in_faces = point_inside_edges[..., 0]
     n_edges = point_inside_edges.shape[-1]
@@ -155,9 +155,6 @@ def search_faces_for_point(target_point_xyz, i_point_nearest,
     else:
         face_index = -1
     return (n_found, face_index)
-
-
-    return point_in_faces
 
 
 @numba.njit()
@@ -179,4 +176,3 @@ def search_faces_for_points(target_points_xyz,
             mesh_face_points_array=face_nodes_array)
         result[i_point] = face_index
     return result
-
